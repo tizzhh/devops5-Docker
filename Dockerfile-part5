@@ -1,0 +1,45 @@
+FROM gcc as builder
+
+WORKDIR /app
+
+COPY ./server/mini-server.c .
+RUN apt-get update && \
+    apt-get install -y libfcgi-dev && \
+    rm -rf /var/lib/apt/lists
+RUN gcc -o mini-server mini-server.c -lfcgi
+
+
+FROM nginx
+
+WORKDIR /app
+
+COPY --from=builder /app/mini-server .
+COPY ./nginx/nginx.conf /etc/nginx/
+COPY ./part_5/entrypoint.sh .
+
+RUN apt-get update && \
+    apt-get install -y spawn-fcgi libfcgi-dev && \
+    rm -rf /var/lib/apt/lists && \
+    chmod +x entrypoint.sh && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid && \
+    chmod u-s,g-s \
+    /usr/bin/mount \
+    /usr/bin/gpasswd \
+    /usr/bin/passwd \
+    /usr/bin/chfn \
+    /usr/bin/wall \
+    /usr/bin/expiry \
+    /usr/sbin/unix_chkpwd \
+    /usr/bin/su \
+    /usr/bin/chsh \
+    /usr/bin/chage \
+    /usr/bin/umount \
+    /usr/bin/newgrp
+
+USER nginx
+
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 CMD curl -f http://localhost/ || exit 1
+
+ENTRYPOINT [ "./entrypoint.sh" ]
