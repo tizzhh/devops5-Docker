@@ -1,0 +1,23 @@
+FROM gcc as builder
+
+WORKDIR /app
+
+COPY ./server/mini-server.c .
+RUN apt-get update && \
+    apt-get install -y libfcgi-dev && \
+    rm -rf /var/lib/apt/lists/
+RUN gcc -o mini-server mini-server.c -lfcgi
+
+
+FROM nginx
+
+COPY --from=builder /app/mini-server .
+COPY ./nginx/nginx.conf /etc/nginx/
+COPY ./part_4/entrypoint.sh .
+
+RUN apt-get update && \
+    apt-get install -y spawn-fcgi libfcgi-dev && \
+    rm -rf /var/lib/apt/lists/ && \
+    chmod +x entrypoint.sh
+
+ENTRYPOINT [ "./entrypoint.sh" ]
