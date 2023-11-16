@@ -3,7 +3,6 @@ version: '3'
 services:
   part5:
     build:
-      context: .
       dockerfile: Dockerfile-part5
     container_name: fastcgi_nginx
   nginx-proxy:
